@@ -8,7 +8,7 @@ import (
 	"log"
 
 	v1beta1 "k8s.io/api/admission/v1beta1"
-	corev1 "k8s.io/api/core/v1"
+	netev1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,7 +25,8 @@ func Mutate(body []byte, verbose bool) ([]byte, error) {
 	}
 
 	var err error
-	var pod *corev1.Pod
+	// var pod *corev1.Pod
+	var netpol *netev1.NetworkPolicy
 
 	responseBody := []byte{}
 	ar := admReview.Request
@@ -34,7 +35,8 @@ func Mutate(body []byte, verbose bool) ([]byte, error) {
 	if ar != nil {
 
 		// get the Pod object and unmarshal it into its struct, if we cannot, we might as well stop here
-		if err := json.Unmarshal(ar.Object.Raw, &pod); err != nil {
+		// if err := json.Unmarshal(ar.Object.Raw, &pod); err != nil {
+		if err := json.Unmarshal(ar.Object.Raw, &netpol); err != nil {
 			return nil, fmt.Errorf("unable unmarshal pod json object %v", err)
 		}
 		// set response options
@@ -50,15 +52,33 @@ func Mutate(body []byte, verbose bool) ([]byte, error) {
 
 		// the actual mutation is done by a string in JSONPatch style, i.e. we don't _actually_ modify the object, but
 		// tell K8S how it should modifiy it
+		// p := []map[string]string{}
+		// for i := range pod.Spec.Containers {
+		// 	patch := map[string]string{
+		// 		"op":    "replace",
+		// 		"path":  fmt.Sprintf("/spec/containers/%d/image", i),
+		// 		"value": "debian",
+		// 	}
+		// 	p = append(p, patch)
+		// }
+
+		// for i := range netpol.Spec.Egress {
+
 		p := []map[string]string{}
-		for i := range pod.Spec.Containers {
-			patch := map[string]string{
-				"op":    "replace",
-				"path":  fmt.Sprintf("/spec/containers/%d/image", i),
-				"value": "debian",
-			}
-			p = append(p, patch)
+		patch := map[string]string{
+			"op":    "replace",
+			"path":  "/spec/egress/0/to/0/ipBlock/CIDR",
+			"value": "10.105.66.53",
 		}
+		// patch := map[string]string{
+		// 	"op":    "replace",
+		// 	"path":  "/spec/egress/0/to/1/ipBlock/CIDR",
+		// 	"value": "10.105.66.53",
+		// }
+		p = append(p, patch)
+
+		// }
+
 		// parse the []map into JSON
 		resp.Patch, err = json.Marshal(p)
 

@@ -1,0 +1,69 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: self-signer
+  namespace: default
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: my-webhook-certificate
+  namespace: default
+spec:
+  secretName: my-webhook-certificate-secret
+  dnsNames:
+    - my-webhook
+    - my-webhook.default
+  issuerRef:
+    name: self-signer
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: my-webhook
+  annotations:
+    cert-manager.io/inject-ca-from: default/my-webhook-certificate
+webhooks:
+  - name: app.default.svc
+    admissionReviewVersions:
+      - "v1"
+    sideEffects: None
+    failurePolicy: Ignore
+    clientConfig:
+      service:
+        name: my-webhook
+        namespace: default
+        path: "/mutate"
+
+# ---
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: my-webhook-custom-certificate-secret
+#   annotations:
+#     cert-manager.io/allow-direct-injection: "true"
+# type: kubernetes.io/tls
+# data:
+#   ca.crt: LS0t....
+#   tls.key: ""
+#   tls.crt: ""
+# ---
+# apiVersion: admissionregistration.k8s.io/v1
+# kind: MutatingWebhookConfiguration
+# metadata:
+#   name: my-webhook
+#   annotations:
+#     cert-manager.io/inject-ca-from-secret: default/my-webhook-custom-certificate-secret
+# webhooks:
+#   - name: app.default.svc
+#     admissionReviewVersions:
+#       - "v1"
+#     sideEffects: None
+#     failurePolicy: Ignore
+#     clientConfig:
+#       service:
+#         name: my-webhook
+#         namespace: default
+#         path: "/mutate"

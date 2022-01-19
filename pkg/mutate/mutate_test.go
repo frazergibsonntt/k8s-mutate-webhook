@@ -45,77 +45,40 @@ func TestMutatesValidRequest(t *testing.T) {
 				]
 			},
 			"object": {
-				"kind": "Pod",
-				"apiVersion": "v1",
+				"apiVersion": "networking.k8s.io/v1",
+				"kind": "NetworkPolicy",
 				"metadata": {
-					"name": "c7m",
-					"namespace": "yolo",
-					"creationTimestamp": null,
-					"labels": {
-						"name": "c7m"
-					},
-					"annotations": {
-						"kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Pod\",\"metadata\":{\"annotations\":{},\"labels\":{\"name\":\"c7m\"},\"name\":\"c7m\",\"namespace\":\"yolo\"},\"spec\":{\"containers\":[{\"args\":[\"-c\",\"trap \\\"killall sleep\\\" TERM; trap \\\"kill -9 sleep\\\" KILL; sleep infinity\"],\"command\":[\"/bin/bash\"],\"image\":\"centos:7\",\"name\":\"c7m\"}]}}\n"
-					}
+					"name": "default-netpol",
+					"namespace": "mutatingwebhooktest",
 				},
 				"spec": {
-					"volumes": [
+					"egress": [
 						{
-							"name": "default-token-5z7xl",
-							"secret": {
-								"secretName": "default-token-5z7xl"
-							}
-						}
-					],
-					"containers": [
-						{
-							"name": "c7m",
-							"image": "centos:7",
-							"command": [
-								"/bin/bash"
-							],
-							"args": [
-								"-c",
-								"trap \"killall sleep\" TERM; trap \"kill -9 sleep\" KILL; sleep infinity"
-							],
-							"resources": {},
-							"volumeMounts": [
+							"ports": [
 								{
-									"name": "default-token-5z7xl",
-									"readOnly": true,
-									"mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+									"port": 443,
+									"protocol": "TCP"
 								}
 							],
-							"terminationMessagePath": "/dev/termination-log",
-							"terminationMessagePolicy": "File",
-							"imagePullPolicy": "IfNotPresent"
+							"to": [
+								{
+									"ipBlock": {
+										"cidr": "10.105.66.53/32"
+									}
+								},
+								{
+									"ipBlock": {
+										"cidr": "10.105.74.214/32"
+									}
+								}
+							]
 						}
 					],
-					"restartPolicy": "Always",
-					"terminationGracePeriodSeconds": 30,
-					"dnsPolicy": "ClusterFirst",
-					"serviceAccountName": "default",
-					"serviceAccount": "default",
-					"securityContext": {},
-					"schedulerName": "default-scheduler",
-					"tolerations": [
-						{
-							"key": "node.kubernetes.io/not-ready",
-							"operator": "Exists",
-							"effect": "NoExecute",
-							"tolerationSeconds": 300
-						},
-						{
-							"key": "node.kubernetes.io/unreachable",
-							"operator": "Exists",
-							"effect": "NoExecute",
-							"tolerationSeconds": 300
-						}
-					],
-					"priority": 0,
-					"enableServiceLinks": true
-				},
-				"status": {}
+					"podSelector": {},
+					"policyTypes": [
+						"Egress"
+					]
+				}
 			},
 			"oldObject": null,
 			"dryRun": false,
@@ -135,7 +98,7 @@ func TestMutatesValidRequest(t *testing.T) {
 	assert.NoError(t, err, "failed to unmarshal with error %s", err)
 
 	rr := r.Response
-	assert.Equal(t, `[{"op":"replace","path":"/spec/containers/0/image","value":"debian"}]`, string(rr.Patch))
+	assert.Equal(t, `[{"op":"replace","path":"/spec/egress/0/to/0/ipBlock/CIDR","value":"10.105.66.53"}]`, string(rr.Patch))
 	assert.Contains(t, rr.AuditAnnotations, "mutateme")
 
 }
