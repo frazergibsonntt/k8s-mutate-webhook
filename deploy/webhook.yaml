@@ -42,6 +42,14 @@ spec:
             requests:
               cpu: 250m
               memory: 64Mi
+          volumeMounts:
+            - name: tls
+              mountPath: "/etc/admission-webhook/tls"
+              readOnly: true
+      volumes:
+        - name: tls
+          secret:
+            secretName: my-webhook-certificate-secret
 
 ---
 apiVersion: admissionregistration.k8s.io/v1
